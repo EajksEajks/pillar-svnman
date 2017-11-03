@@ -26,6 +26,25 @@ def info(repo_id):
 
 
 @manager_svnman.command
+def create(repo_id, project_url, creator):
+    """Creates a new Subversion repository."""
+
+    from pillar.api.projects.utils import project_id
+    from . import current_svnman
+    from .remote import CreateRepo
+
+    pid = project_id(project_url)
+    creation_info = CreateRepo(
+        repo_id=repo_id,
+        project_id=str(pid),
+        creator=creator,
+    )
+
+    log.info('Creating repository %r', repo_id)
+    current_svnman.remote.create_repo(creation_info)
+
+
+@manager_svnman.command
 def grant(repo_id, username, password):
     """Allows the user access to the repository."""
 

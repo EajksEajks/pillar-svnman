@@ -15,6 +15,13 @@ class RepoDescription:
 
 
 @attr.s
+class CreateRepo:
+    repo_id: str = attrs_extra.string()
+    project_id: str = attrs_extra.string()
+    creator: str = attrs_extra.string()
+
+
+@attr.s
 class API:
     # The remote URL and credentials are separate. This way we can log the
     # URL that is used in requests without worrying about leaking creds.
@@ -63,6 +70,18 @@ class API:
         self._raise_for_status(resp)
 
         return RepoDescription(**resp.json())
+
+    def create_repo(self, create_repo: CreateRepo):
+        """Creates a new repository with the given ID.
+
+        :param create_repo: info required by the API
+        :raises svnman.exceptions.RepoAlreadyExists:
+        """
+
+        resp = self._request('POST', f'repo', json=attr.asdict(create_repo))
+        if resp.status_code == requests.codes.conflict:
+            raise exceptions.RepoAlreadyExists(create_repo.repo_id)
+        self._raise_for_status(resp)
 
     def modify_access(self,
                       repo_id: str,
