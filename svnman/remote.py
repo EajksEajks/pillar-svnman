@@ -32,9 +32,6 @@ class Remote(object):
 
     def __attrs_post_init__(self):
         from requests.adapters import HTTPAdapter
-
-        if self.username or self.password:
-            self._session.auth = (self.username, self.password)
         self._session.mount('/', HTTPAdapter(max_retries=10))
 
     def fetch_repo(self, repo_id: str) -> RepoDescription:
@@ -51,4 +48,6 @@ class Remote(object):
 
         abs_url = urljoin(self.remote_url, rel_url)
         self._log.getChild('request').info('%s %s', method, abs_url)
-        return self._session.request(method, abs_url, **kwargs)
+
+        auth = (self.username, self.password) if self.username or self.password else None
+        return self._session.request(method, abs_url, auth=auth, **kwargs)
