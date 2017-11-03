@@ -78,6 +78,7 @@ class API:
         :raises svnman.exceptions.RepoAlreadyExists:
         """
 
+        self._log.info('Creating repository %r', create_repo)
         resp = self._request('POST', f'repo', json=attr.asdict(create_repo))
         if resp.status_code == requests.codes.conflict:
             raise exceptions.RepoAlreadyExists(create_repo.repo_id)
@@ -96,6 +97,7 @@ class API:
         :param revoke: list of usernames.
         """
 
+        self._log.info('Modifying access rules for repository %r', repo_id)
         grants = [{'username': u, 'password': p} for u, p in grant]
 
         resp = self._request('POST', f'repo/{repo_id}/access', json={
