@@ -22,7 +22,7 @@ class SVNManExtension(PillarExtension):
         from . import remote
 
         self._log = logging.getLogger('%s.SVNManExtension' % __name__)
-        self.remote: remote.Remote = None
+        self.remote: remote.API = None
 
     @property
     def name(self):
@@ -74,7 +74,7 @@ class SVNManExtension(PillarExtension):
     def setup_app(self, app):
         from . import remote
 
-        self.remote = remote.Remote(
+        self.remote = remote.API(
             remote_url=app.config['SVNMAN_API_URL'],
             username=app.config['SVNMAN_API_USERNAME'],
             password=app.config['SVNMAN_API_PASSWORD'],

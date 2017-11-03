@@ -13,7 +13,7 @@ class RepoDescription(object):
 
 
 @attr.s
-class Remote(object):
+class API(object):
     # The remote URL and credentials are separate. This way we can log the
     # URL that is used in requests without worrying about leaking creds.
     remote_url: str = attr.ib(validator=attr.validators.instance_of(str))
