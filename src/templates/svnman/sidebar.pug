@@ -1,8 +1,8 @@
-li.tabs-flamenco(
-	title="Flamenco",
+li.tabs-svnman(
+	title="SVNman",
 	data-toggle="tooltip",
 	data-placement="right")
-	| {% if project %}
-	a(href="{{url_for('flamenco.jobs.perproject.index', project_url=project.url, _external=True)}}")
-		i.pi-flamenco
+	| {% if current_user.has_cap('svn-use') %}
+	a(href="alert('hmmm nothing here yet')")
+		i.pi-svnman
 	| {% endif %}

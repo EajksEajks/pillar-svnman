@@ -1,16 +1,12 @@
-import functools
 import logging
 
-import bson
-from flask import Blueprint, render_template, redirect, url_for
-from flask_login import login_required
+from flask import Blueprint, render_template, jsonify
 import werkzeug.exceptions as wz_exceptions
 
-from pillar.auth import current_user as current_user
-from pillar.api.utils.authentication import current_user_id
+from pillar.api.utils.authorization import require_login
+from pillar.auth import current_user
 from pillar.web.utils import attach_project_pictures
 from pillar.web.system_util import pillar_api
-from pillar.web.projects.routes import project_view
 import pillarsdk
 
 from svnman import current_svnman
@@ -39,24 +35,38 @@ def index():
                            projs_with_summaries=projs_with_summaries)
 
 
-def error_project_not_setup_for_svnman():
-    return render_template('svnman/errors/project_not_setup.html')
-
-
 def error_project_not_available():
     import flask
 
     if flask.request.is_xhr:
-        resp = flask.jsonify({'_error': 'project not available on Subversion'})
+        resp = flask.jsonify({'_error': 'Subversion service not available'})
         resp.status_code = 403
         return resp
 
-    return render_template('svnman/errors/project_not_available.html')
+    return render_template('svnman/errors/service_not_available.html')
 
 
-@blueprint.route('/setup-for-svn')
-def setup_for_svnman(project_url):
-    return f'yeah {project_url}'
+@blueprint.route('/<project_url>/create-repo', methods=['POST'])
+@require_login(require_cap='svn-use')
+def create_repo(project_url: str):
+    log.info('going to create repository for project url=%r on behalf of user %s (%s)',
+             project_url, current_user.user_id, current_user.email)
+
+    from . import exceptions
+
+    try:
+        current_svnman.create_repo(project_url, f'{current_user.full_name} <{current_user.email}>')
+    except (OSError, IOError):
+        log.exception('unable to reach SVNman API')
+        resp = jsonify(_message='unable to reach SVNman API')
+        resp.status_code = 500
+        return resp
+    except exceptions.RemoteError as ex:
+        log.error('API sent us an error: %s', ex)
+        resp = jsonify(_message=str(ex))
+        resp.status_code = 500
+        return resp
+    return '', 204
 
 
 def project_settings(project: pillarsdk.Project, **template_args: dict):
@@ -66,9 +76,9 @@ def project_settings(project: pillarsdk.Project, **template_args: dict):
         raise wz_exceptions.Forbidden()
 
     # Based on the project state, we can render a different template.
-    # if not current_svnman.is_svnman_project(project):
-    return render_template('svnman/project_settings/offer_setup.html',
-                           project=project, **template_args)
+    if not current_svnman.is_svnman_project(project):
+        return render_template('svnman/project_settings/offer_create_repo.html',
+                               project=project, **template_args)
 
     return render_template('svnman/project_settings/settings.html',
                            project=project,

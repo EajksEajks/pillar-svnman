@@ -10,16 +10,16 @@
 
 | {% block footer_scripts %}
 script.
-	function setupForSubversion() {
+	function createRepo() {
 		$.ajax({
-			url: '{{ url_for( "svnman.setup_for_svnman", project_url=project.url) }}',
+			url: '{{ url_for( "svnman.create_repo", project_url=project.url) }}',
 			method: 'POST',
 		})
 		.done(function() {
 			window.location.reload();
 		})
 		.fail(function(err) {
-			var err_elt = xhrErrorResponseElement(err, 'Error setting up your project: ');
+			var err_elt = xhrErrorResponseElement(err, 'Error creating your repository: ');
 			toastr.error(err_elt);
 		});
 	}
