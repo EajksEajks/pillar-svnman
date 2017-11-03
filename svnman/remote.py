@@ -9,13 +9,13 @@ from . import exceptions
 
 
 @attr.s
-class RepoDescription(object):
+class RepoDescription:
     repo_id: str = attr.ib(validator=attr.validators.instance_of(str))
     access: typing.List[str] = attr.ib(validator=attr.validators.instance_of(list))
 
 
 @attr.s
-class API(object):
+class API:
     # The remote URL and credentials are separate. This way we can log the
     # URL that is used in requests without worrying about leaking creds.
     remote_url: str = attr.ib(validator=attr.validators.instance_of(str))
