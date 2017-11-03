@@ -1,0 +1,14 @@
+*.pyc
+*.bak
+*.css.map
+__pycache__
+.coverage
+
+/build
+/.cache
+/*.egg-info/
+/.eggs/
+/node_modules/
+/svnman/templates/
+/svnman/static/assets/css/
+/svnman/static/assets/js/generated/

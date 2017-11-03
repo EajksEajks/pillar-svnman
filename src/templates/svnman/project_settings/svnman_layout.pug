@@ -1,0 +1,23 @@
+| {% extends 'projects/edit_layout.html'  %}
+| {% set title = 'svnman' %}
+| {% block page_title %}Subversion settings for {{ project.name }}{% endblock %}
+
+| {% block head %}
+script(src="{{ url_for('static_svnman', filename='assets/js/generated/tutti.min.js') }}")
+| {% endblock %}
+
+| {% block project_context_header %}
+span#project-edit-title
+	| {{ self.page_title() }}
+| {% endblock %}
+
+| {% block project_context %}
+#node-edit-container
+	| {% block svnman_container %}
+	| {% endblock svnman_container %}
+
+	.settings-footer
+		p
+			| New to Subversion?
+			| Learn more at website we have yet to find.
+| {% endblock project_context %}

@@ -1,0 +1,26 @@
+| {% extends 'svnman/project_settings/svnman_layout.html'  %}
+
+| {% block svnman_container %}
+#node-edit-form
+	p This project does not have a Subversion repository
+	p
+		button.btn.btn-success(onclick='createRepo()') Create Subversion repository
+
+| {% endblock svnman_container %}
+
+| {% block footer_scripts %}
+script.
+	function setupForSubversion() {
+		$.ajax({
+			url: '{{ url_for( "svnman.setup_for_svnman", project_url=project.url) }}',
+			method: 'POST',
+		})
+		.done(function() {
+			window.location.reload();
+		})
+		.fail(function(err) {
+			var err_elt = xhrErrorResponseElement(err, 'Error setting up your project: ');
+			toastr.error(err_elt);
+		});
+	}
+| {% endblock %}

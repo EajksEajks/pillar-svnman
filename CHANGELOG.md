@@ -1,0 +1,1 @@
+# SVNMan Pillar Extension Changelog
