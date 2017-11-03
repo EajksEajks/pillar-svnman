@@ -70,4 +70,17 @@ def revoke(repo_id, username):
     log.info('Done')
 
 
+@manager_svnman.command
+def delete(repo_id):
+    """Deletes a repository. This cannot be undone via the API."""
+
+    from . import current_svnman
+
+    log.info('Deleting repository %r', repo_id)
+    input('Press ENTER to continue irrevocable repository deletion')
+
+    current_svnman.remote.delete_repo(repo_id)
+    log.info('Done')
+
+
 manager.add_command('svn', manager_svnman)

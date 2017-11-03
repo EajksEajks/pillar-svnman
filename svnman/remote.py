@@ -103,3 +103,10 @@ class API:
             'revoke': revoke,
         })
         self._raise_for_status(resp)
+
+    def delete_repo(self, repo_id: str):
+        """Deletes a repository, cannot be undone through the API."""
+
+        self._log.info('Deleting repository %r', repo_id)
+        resp = self._request('DELETE', f'repo/{repo_id}')
+        self._raise_for_status(resp)
