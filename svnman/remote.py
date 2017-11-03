@@ -36,17 +36,6 @@ class API(object):
         from requests.adapters import HTTPAdapter
         self._session.mount('/', HTTPAdapter(max_retries=10))
 
-    def fetch_repo(self, repo_id: str) -> RepoDescription:
-        """Fetches repository information from the remote."""
-
-        resp = self._request('GET', f'repo/{repo_id}')
-
-        if resp.status_code == requests.codes.conflict:
-            raise exceptions.RepoAlreadyExists(repo_id)
-        resp.raise_for_status()
-
-        return RepoDescription(**resp.json())
-
     def _request(self, method: str, rel_url: str, **kwargs) -> requests.Response:
         """Performs a HTTP request on the API server."""
 
@@ -57,6 +46,17 @@ class API(object):
 
         auth = (self.username, self.password) if self.username or self.password else None
         return self._session.request(method, abs_url, auth=auth, **kwargs)
+
+    def fetch_repo(self, repo_id: str) -> RepoDescription:
+        """Fetches repository information from the remote."""
+
+        resp = self._request('GET', f'repo/{repo_id}')
+
+        if resp.status_code == requests.codes.conflict:
+            raise exceptions.RepoAlreadyExists(repo_id)
+        resp.raise_for_status()
+
+        return RepoDescription(**resp.json())
 
     def modify_access(self,
                       repo_id: str,
