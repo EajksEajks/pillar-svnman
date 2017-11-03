@@ -47,14 +47,20 @@ class API:
         auth = (self.username, self.password) if self.username or self.password else None
         return self._session.request(method, abs_url, auth=auth, **kwargs)
 
+    def _raise_for_status(self, resp: requests.Response):
+        """Raises the appropriate exception for the given response."""
+
+        if resp.status_code < 400:
+            return
+
+        exc_class = exceptions.http_error_map[resp.status_code]
+        raise exc_class(resp.text)
+
     def fetch_repo(self, repo_id: str) -> RepoDescription:
         """Fetches repository information from the remote."""
 
         resp = self._request('GET', f'repo/{repo_id}')
-
-        if resp.status_code == requests.codes.conflict:
-            raise exceptions.RepoAlreadyExists(repo_id)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
 
         return RepoDescription(**resp.json())
 
@@ -77,4 +83,4 @@ class API:
             'grant': grants,
             'revoke': revoke,
         })
-        resp.raise_for_status()
+        self._raise_for_status(resp)
