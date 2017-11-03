@@ -10,8 +10,8 @@ from . import exceptions
 
 @attr.s
 class RepoDescription:
-    repo_id: str = attr.ib(validator=attr.validators.instance_of(str))
-    access: typing.List[str] = attr.ib(validator=attr.validators.instance_of(list))
+    repo_id: str = attrs_extra.string()
+    access: typing.List[str] = attrs_extra.string()
 
 
 @attr.s
