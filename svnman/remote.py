@@ -79,7 +79,7 @@ class API:
         """
 
         self._log.info('Creating repository %r', create_repo)
-        resp = self._request('POST', f'repo', json=attr.asdict(create_repo))
+        resp = self._request('POST', 'repo', json=attr.asdict(create_repo))
         if resp.status_code == requests.codes.conflict:
             raise exceptions.RepoAlreadyExists(create_repo.repo_id)
         self._raise_for_status(resp)
