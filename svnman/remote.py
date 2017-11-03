@@ -26,7 +26,7 @@ class API(object):
 
     username: str = attr.ib(validator=attr.validators.instance_of(str))
     """Username for authenticating ourselves with the API."""
-    password: str = attr.ib(validator=attr.validators.instance_of(str))
+    password: str = attr.ib(validator=attr.validators.instance_of(str), repr=False)
     """Password for authenticating ourselves with the API."""
 
     _log = attrs_extra.log('%s.Remote' % __name__)
