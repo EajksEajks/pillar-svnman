@@ -1,7 +1,7 @@
 import logging
 import os.path
+from urllib.parse import urljoin
 
-import bson
 import flask
 from werkzeug.local import LocalProxy
 
@@ -9,6 +9,7 @@ import pillarsdk
 from pillar.extension import PillarExtension
 from pillar.auth import current_user
 from pillar.api.projects import utils as proj_utils
+from pillar import current_app
 
 EXTENSION_NAME = 'svnman'
 
@@ -47,7 +48,7 @@ class SVNManExtension(PillarExtension):
         from . import cli
 
         return {
-            'SVNMAN_API_URL': 'http://configure-SVNMAN_API_URL/api/',
+            'SVNMAN_URL': 'http://SVNMAN_URL/',
             'SVNMAN_API_USERNAME': 'SVNMAN_API_USERNAME',
             'SVNMAN_API_PASSWORD': 'SVNMAN_API_PASSWORD',
         }
@@ -81,7 +82,7 @@ class SVNManExtension(PillarExtension):
         from . import remote
 
         self.remote = remote.API(
-            remote_url=app.config['SVNMAN_API_URL'],
+            remote_url=urljoin(app.config['SVNMAN_URL'], 'api/'),
             username=app.config['SVNMAN_API_USERNAME'],
             password=app.config['SVNMAN_API_PASSWORD'],
         )
@@ -115,7 +116,20 @@ class SVNManExtension(PillarExtension):
 
         from .routes import project_settings
 
-        return project_settings(project, **template_args)
+        remote_url = current_app.config['SVNMAN_URL']
+
+        if self.is_svnman_project(project):
+            repo_id = project.extension_props[EXTENSION_NAME].repo_id
+            svn_url = urljoin(remote_url, f'/repo/{repo_id}')
+        else:
+            svn_url = ''
+            repo_id = ''
+
+        return project_settings(project,
+                                svn_url=svn_url,
+                                repo_id=repo_id,
+                                remote_url=remote_url,
+                                **template_args)
 
     def is_svnman_project(self, project: pillarsdk.Project) -> bool:
         """Checks whether the project is correctly set up for SVNman."""
@@ -196,6 +210,29 @@ class SVNManExtension(PillarExtension):
         proj_utils.put_project(proj)
 
         return repo_info.repo_id
+
+    def delete_repo(self, project_url: str, repo_id: str):
+        """Deletes an SVN repository and detaches it from the project."""
+
+        from . import remote, exceptions
+
+        proj = proj_utils.get_project(project_url)
+        project_id = proj['_id']
+        eprops = proj.setdefault('extension_props', {}).setdefault(EXTENSION_NAME, {})
+
+        proj_repo_id = eprops.get('repo_id')
+        if proj_repo_id != repo_id:
+            self._log.warning('project %s is linked to repo %r, not to %r, refusing to delete',
+                              project_id, proj_repo_id, repo_id)
+            raise ValueError()
+
+        self.remote.delete_repo(repo_id)
+        self._log.info('deleted Subversion repository %s', repo_id)
+
+        # Update the project to remove the repository ID.
+        eprops.pop('repo_id', None)
+        eprops.pop('access', None)
+        proj_utils.put_project(proj)
 
 
 def _get_current_svnman() -> SVNManExtension:

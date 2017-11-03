@@ -2,5 +2,29 @@
 
 | {% block svnman_container %}
 #node-edit-form
-	p nothing here yet.
+	#node-edit-form
+		p This project has a Subversion repository
+		p To do a checkout, use:
+		p
+			code svn checkout {{ svn_url }} my_repo
+		p
+			button.btn.btn-danger(onclick='deleteRepo()') Delete Subversion repository
+
 | {% endblock svnman_container %}
+
+| {% block footer_scripts %}
+script.
+	function deleteRepo() {
+		$.ajax({
+			url: '{{ url_for( "svnman.delete_repo", project_url=project.url, repo_id=repo_id) }}',
+			method: 'POST',
+		})
+		.done(function() {
+			window.location.reload();
+		})
+		.fail(function(err) {
+			var err_elt = xhrErrorResponseElement(err, 'Error deleting your repository: ');
+			toastr.error(err_elt);
+		});
+	}
+| {% endblock %}

@@ -54,11 +54,38 @@ def create_repo(project_url: str):
 
     from . import exceptions
 
+    # TODO(sybren): check project access
+
     try:
         current_svnman.create_repo(project_url, f'{current_user.full_name} <{current_user.email}>')
     except (OSError, IOError):
         log.exception('unable to reach SVNman API')
-        resp = jsonify(_message='unable to reach SVNman API')
+        resp = jsonify(_message='unable to reach SVNman API server')
+        resp.status_code = 500
+        return resp
+    except exceptions.RemoteError as ex:
+        log.error('API sent us an error: %s', ex)
+        resp = jsonify(_message=str(ex))
+        resp.status_code = 500
+        return resp
+    return '', 204
+
+
+@blueprint.route('/<project_url>/delete-repo/<repo_id>', methods=['POST'])
+@require_login(require_cap='svn-use')
+def delete_repo(project_url: str, repo_id: str):
+    log.info('going to delete repository %s for project url=%r on behalf of user %s (%s)',
+             repo_id, project_url, current_user.user_id, current_user.email)
+
+    from . import exceptions
+
+    # TODO(sybren): check project access
+
+    try:
+        current_svnman.delete_repo(project_url, repo_id)
+    except (OSError, IOError):
+        log.exception('unable to reach SVNman API')
+        resp = jsonify(_message='unable to reach SVNman API server')
         resp.status_code = 500
         return resp
     except exceptions.RemoteError as ex:
