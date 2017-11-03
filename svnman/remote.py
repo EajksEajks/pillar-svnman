@@ -57,3 +57,24 @@ class API(object):
 
         auth = (self.username, self.password) if self.username or self.password else None
         return self._session.request(method, abs_url, auth=auth, **kwargs)
+
+    def modify_access(self,
+                      repo_id: str,
+                      grant: typing.List[typing.Tuple[str, str]],
+                      revoke: typing.List[str]):
+        """Modifies user access to the repository.
+
+        Does not return anything; no exception means exection was ok.
+
+        :param repo_id: the repository ID
+        :param grant: list of (username password) tuples. The passwords should be BCrypt-hashed.
+        :param revoke: list of usernames.
+        """
+
+        grants = [{'username': u, 'password': p} for u, p in grant]
+
+        resp = self._request('POST', f'repo/{repo_id}/access', json={
+            'grant': grants,
+            'revoke': revoke,
+        })
+        resp.raise_for_status()

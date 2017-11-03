@@ -25,4 +25,30 @@ def info(repo_id):
     log.info('Access : %s', sorted(repoinfo.access))
 
 
+@manager_svnman.command
+def grant(repo_id, username, password):
+    """Allows the user access to the repository."""
+
+    import bcrypt
+    from . import current_svnman
+
+    hashed = bcrypt.hashpw(password.encode('utf8'), bcrypt.gensalt()).decode('ascii')
+
+    log.info('Granting access to repo %r', repo_id)
+    log.info('Hashed password: %r', hashed)
+    current_svnman.remote.modify_access(repo_id, grant=[(username, hashed)], revoke=[])
+    log.info('Done')
+
+
+@manager_svnman.command
+def revoke(repo_id, username):
+    """Revokes the user access from the repository."""
+
+    from . import current_svnman
+
+    log.info('Revoking access from repo %r', repo_id)
+    current_svnman.remote.modify_access(repo_id, grant=[], revoke=[username])
+    log.info('Done')
+
+
 manager.add_command('svn', manager_svnman)
