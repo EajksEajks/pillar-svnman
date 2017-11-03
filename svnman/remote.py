@@ -5,6 +5,8 @@ import requests
 
 from pillar import attrs_extra
 
+from . import exceptions
+
 
 @attr.s
 class RepoDescription(object):
@@ -38,7 +40,11 @@ class API(object):
         """Fetches repository information from the remote."""
 
         resp = self._request('GET', f'repo/{repo_id}')
+
+        if resp.status_code == requests.codes.conflict:
+            raise exceptions.RepoAlreadyExists(repo_id)
         resp.raise_for_status()
+
         return RepoDescription(**resp.json())
 
     def _request(self, method: str, rel_url: str, **kwargs) -> requests.Response:
