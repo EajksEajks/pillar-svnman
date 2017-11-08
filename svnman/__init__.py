@@ -48,7 +48,8 @@ class SVNManExtension(PillarExtension):
         from . import cli
 
         return {
-            'SVNMAN_URL': 'http://SVNMAN_URL/',
+            'SVNMAN_REPO_URL': 'http://SVNMAN_REPO_URL/repo/',
+            'SVNMAN_API_URL': 'http://SVNMAN_API_URL/api/',
             'SVNMAN_API_USERNAME': 'SVNMAN_API_USERNAME',
             'SVNMAN_API_PASSWORD': 'SVNMAN_API_PASSWORD',
         }
@@ -82,7 +83,7 @@ class SVNManExtension(PillarExtension):
         from . import remote
 
         self.remote = remote.API(
-            remote_url=urljoin(app.config['SVNMAN_URL'], 'api/'),
+            remote_url=app.config['SVNMAN_API_URL'],
             username=app.config['SVNMAN_API_USERNAME'],
             password=app.config['SVNMAN_API_PASSWORD'],
         )
@@ -116,11 +117,11 @@ class SVNManExtension(PillarExtension):
 
         from .routes import project_settings
 
-        remote_url = current_app.config['SVNMAN_URL']
+        remote_url = current_app.config['SVNMAN_REPO_URL']
 
         if self.is_svnman_project(project):
             repo_id = project.extension_props[EXTENSION_NAME].repo_id
-            svn_url = urljoin(remote_url, f'/repo/{repo_id}')
+            svn_url = urljoin(remote_url, repo_id)
         else:
             svn_url = ''
             repo_id = ''
