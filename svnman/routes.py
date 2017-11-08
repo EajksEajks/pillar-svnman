@@ -27,13 +27,8 @@ def index():
     for project in projects['_items']:
         attach_project_pictures(project, api)
 
-    projs_with_summaries = [
-        (proj, current_svnman.job_manager.job_status_summary(proj['_id']))
-        for proj in projects['_items']
-    ]
-
     return render_template('svnman/index.html',
-                           projs_with_summaries=projs_with_summaries)
+                           projects=projects)
 
 
 def error_project_not_available():

@@ -1,6 +1,7 @@
 import logging
 import os.path
 import string
+import typing
 from urllib.parse import urljoin
 
 import flask
@@ -99,6 +100,8 @@ class SVNManExtension(PillarExtension):
 
     def sidebar_links(self, project):
         if not current_user.has_cap('svn-use'):
+            return ''
+        if not self.is_svnman_project(project):
             return ''
         return flask.render_template('svnman/sidebar.html', project=project)
 
@@ -228,6 +231,26 @@ class SVNManExtension(PillarExtension):
         eprops.pop('repo_id', None)
         eprops.pop('access', None)
         proj_utils.put_project(proj)
+
+    def svnman_projects(self, *, projection: dict = None):
+        """Returns projects with a Subversion repository.
+
+        :returns: {'_items': [proj, proj, ...], '_meta': Eve metadata}
+        """
+
+        import pillarsdk
+        from pillar.web.system_util import pillar_api
+
+        api = pillar_api()
+
+        # Find projects that have a repository.
+        params = {'where': {f'extension_props.{EXTENSION_NAME}.repo_id': {'$exists': 1}}}
+        if projection:
+            params['projection'] = projection
+
+        projects = pillarsdk.Project.all(params, api=api)
+        return projects
+
 
 
 def _get_current_svnman() -> SVNManExtension:

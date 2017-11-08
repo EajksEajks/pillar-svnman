@@ -1,0 +1,55 @@
+| {% extends 'svnman/layout.html' %}
+| {% block bodyattrs %}{{ super() }} data-context='dashboard'{% endblock %}
+| {% block page_title %}Subversion Dashboard{% endblock %}
+
+| {% block style %}
+style.
+	#col_right section {
+		margin: 2ex;
+	}
+
+	#col_right section p {
+		line-height: 180%;
+		hyphens: auto;
+		text-align: center;
+	}
+| {% endblock %}
+
+| {% block body %}
+#col_main
+	.dashboard
+		h4
+			i.pi-svnman
+			|  Subversion
+
+		| {% for proj in projects._items %}
+		h4
+			a(href="{{ url_for('pillar.web.projects.edit_extension', project_url=proj.url, extension='svnman') }}") {{ proj.name }}
+		| {% else %}
+		h4 No Subversion repositories
+
+		p
+			| You have no Subversion repositories yet. To create one, visit the project you
+			| want to create the repository for and click on "Edit Project".
+		p
+			a.btn.button-success(href="{{ url_for('projects.index') }}") my projects
+
+		| {% endfor %}
+
+#col_right
+	.d-welcome
+		.welcome-logo
+			i.pi-svnman
+		.welcome-title Welcome to SVNman
+
+		.welcome-text
+			p Your Subversion Server in the Cloud
+
+	section
+		p
+			| For documentation, downloads, and everything you need for running your own
+			| Ren&shy;der Ma&shy;na&shy;ge&shy;ment Soft&shy;ware, visit the
+			=' '
+			a(href='https://www.svnman.io/', target='_blank') SVNman Website.
+
+| {% endblock %}
