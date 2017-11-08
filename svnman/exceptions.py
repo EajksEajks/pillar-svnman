@@ -44,4 +44,5 @@ http_error_map = collections.defaultdict(lambda: RemoteError)
 http_error_map.update({
     400: BadAPIRequest,
     500: InternalAPIServerError,
+    404: RepoNotFound,
 })

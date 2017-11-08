@@ -136,11 +136,9 @@ class SVNManExtension(PillarExtension):
     def is_svnman_project(self, project: pillarsdk.Project) -> bool:
         """Checks whether the project is correctly set up for SVNman."""
 
-        if not project.extension_props:
-            return False
-
         try:
-            pprops = project.extension_props[EXTENSION_NAME]
+            if not project.extension_props:
+                return False
         except AttributeError:
             self._log.warning("is_svnman_project: Project url=%r doesn't have"
                               " any extension properties.", project['url'])
@@ -148,12 +146,15 @@ class SVNManExtension(PillarExtension):
                 import pprint
                 self._log.debug('Project: %s', pprint.pformat(project.to_dict()))
             return False
+
+        try:
+            pprops = project.extension_props[EXTENSION_NAME]
         except KeyError:
             return False
 
         if pprops is None:
             self._log.warning("is_svnman_project: Project url=%r doesn't have"
-                              " Flamenco extension properties.", project['url'])
+                              " %s extension properties.", EXTENSION_NAME, project['url'])
             return False
 
         return bool(pprops.repo_id)
