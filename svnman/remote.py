@@ -71,11 +71,15 @@ class API:
 
         return RepoDescription(**resp.json())
 
-    def create_repo(self, create_repo: CreateRepo):
+    def create_repo(self, create_repo: CreateRepo) -> str:
         """Creates a new repository with the given ID.
+
+        Note that the repository ID may be changed by the SVNMan;
+        always use the repo ID as returned by this function.
 
         :param create_repo: info required by the API
         :raises svnman.exceptions.RepoAlreadyExists:
+        :returns: the repository ID as returned by the SVNMan.
         """
 
         self._log.info('Creating repository %r', create_repo)
@@ -83,6 +87,9 @@ class API:
         if resp.status_code == requests.codes.conflict:
             raise exceptions.RepoAlreadyExists(create_repo.repo_id)
         self._raise_for_status(resp)
+
+        repo_info = resp.json()
+        return repo_info['repo_id']
 
     def modify_access(self,
                       repo_id: str,

@@ -1,5 +1,6 @@
 import logging
 import os.path
+import string
 from urllib.parse import urljoin
 
 import flask
@@ -157,22 +158,17 @@ class SVNManExtension(PillarExtension):
 
         return bool(pprops.repo_id)
 
-    def create_repo(self, project_url: str, creator: str) -> str:
+    def create_repo(self, project: pillarsdk.Project, creator: str) -> str:
         """Creates a SVN repository with a random ID attached to the project.
 
         Saves the repository ID in the project. Is a no-op if the project
         already has a Subversion repository.
         """
 
-        import random
-        import string
-
         from . import remote, exceptions
 
-        alphabet = string.ascii_letters + string.digits
-
-        proj = proj_utils.get_project(project_url)
-        project_id = proj['_id']
+        project_id = project['_id']
+        proj = project.to_dict()
         eprops = proj.setdefault('extension_props', {}).setdefault(EXTENSION_NAME, {})
 
         repo_id = eprops.get('repo_id')
@@ -181,9 +177,6 @@ class SVNManExtension(PillarExtension):
                               project_id, repo_id)
             return repo_id
 
-        def random_id():
-            return ''.join([random.choice(alphabet) for _ in range(24)])
-
         repo_info = remote.CreateRepo(
             repo_id='',
             project_id=str(project_id),
@@ -191,10 +184,10 @@ class SVNManExtension(PillarExtension):
         )
 
         for _ in range(100):
-            repo_info.repo_id = random_id()
+            repo_info.repo_id = _random_id()
             self._log.info('creating new repository, trying out %s', repo_info)
             try:
-                self.remote.create_repo(repo_info)
+                actual_repo_id = self.remote.create_repo(repo_info)
             except exceptions.RepoAlreadyExists:
                 self._log.info('repo_id=%r already exists, trying random other one',
                                repo_info.repo_id)
@@ -207,10 +200,10 @@ class SVNManExtension(PillarExtension):
         self._log.info('created new Subversion repository: %s', repo_info)
 
         # Update the project to include the repository ID.
-        eprops['repo_id'] = repo_info.repo_id
+        eprops['repo_id'] = actual_repo_id
         proj_utils.put_project(proj)
 
-        return repo_info.repo_id
+        return actual_repo_id
 
     def delete_repo(self, project_url: str, repo_id: str):
         """Deletes an SVN repository and detaches it from the project."""
@@ -240,6 +233,20 @@ def _get_current_svnman() -> SVNManExtension:
     """Returns the SVNMan extension of the current application."""
 
     return flask.current_app.pillar_extensions[EXTENSION_NAME]
+
+
+def _random_id(alphabet=string.ascii_letters + string.digits) -> str:
+    """Returns a random repository ID.
+
+    IDs start with a lowercase-letters-only prefix so that any
+    prefix-based subdivision on the server doesn't need to
+    distinguish between too many different prefixes. It's
+    a bit ugly to do that here, but at least it works 🐙
+    """
+    import random
+
+    prefix = ''.join([random.choice(string.ascii_lowercase) for _ in range(2)])
+    return prefix + ''.join([random.choice(alphabet) for _ in range(22)])
 
 
 current_svnman: SVNManExtension = LocalProxy(_get_current_svnman)

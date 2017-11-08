@@ -5,6 +5,7 @@ import werkzeug.exceptions as wz_exceptions
 
 from pillar.api.utils.authorization import require_login
 from pillar.auth import current_user
+from pillar.web.projects.routes import project_view
 from pillar.web.utils import attach_project_pictures
 from pillar.web.system_util import pillar_api
 import pillarsdk
@@ -48,16 +49,17 @@ def error_project_not_available():
 
 @blueprint.route('/<project_url>/create-repo', methods=['POST'])
 @require_login(require_cap='svn-use')
-def create_repo(project_url: str):
+@project_view()
+def create_repo(project: pillarsdk.Project):
     log.info('going to create repository for project url=%r on behalf of user %s (%s)',
-             project_url, current_user.user_id, current_user.email)
+             project.url, current_user.user_id, current_user.email)
 
     from . import exceptions
 
     # TODO(sybren): check project access
 
     try:
-        current_svnman.create_repo(project_url, f'{current_user.full_name} <{current_user.email}>')
+        current_svnman.create_repo(project, f'{current_user.full_name} <{current_user.email}>')
     except (OSError, IOError):
         log.exception('unable to reach SVNman API')
         resp = jsonify(_message='unable to reach SVNman API server')
