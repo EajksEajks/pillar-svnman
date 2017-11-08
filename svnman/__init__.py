@@ -24,7 +24,6 @@ class SVNManExtension(PillarExtension):
     user_caps = {
         'subscriber-pro': frozenset({'svn-use'}),
         'demo': frozenset({'svn-use'}),
-        'admin': frozenset({'svn-use', 'svn-admin'}),
     }
 
     def __init__(self):
