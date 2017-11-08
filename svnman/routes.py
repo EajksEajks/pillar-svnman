@@ -56,7 +56,11 @@ def create_repo(project: pillarsdk.Project):
 
     from . import exceptions
 
-    # TODO(sybren): check project access
+    if 'PUT' not in project.allowed_methods:
+        log.warning('User %s has no PUT access to project %s (id=%s) but wants to '
+                    'create a Subversion repository; denying access',
+                    current_user.user_id, project.url, project['_id'])
+        raise wz_exceptions.Forbidden()
 
     try:
         current_svnman.create_repo(project, f'{current_user.full_name} <{current_user.email}>')
