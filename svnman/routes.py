@@ -16,6 +16,31 @@ blueprint = Blueprint('svnman', __name__)
 log = logging.getLogger(__name__)
 
 
+def require_project_put(projections: dict = None):
+    """Endpoint decorator, translates project_url into an actual project and checks PUT access."""
+
+    import functools
+
+    if callable(projections):
+        raise TypeError('Use with @require_project_put() <-- note the parentheses')
+
+    def decorator(wrapped):
+        @functools.wraps(wrapped)
+        @project_view()
+        def wrapper(project: pillarsdk.Project, *args, **kwargs):
+            if 'PUT' not in project.allowed_methods:
+                log.warning('User %s has no PUT access to project %s (id=%s) but wants to '
+                            'manage a Subversion repository; denying access to %s',
+                            current_user.user_id, project.url, project['_id'], request.url)
+                raise wz_exceptions.Forbidden()
+
+            return wrapped(project, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 @blueprint.route('/')
 def index():
     api = pillar_api()
@@ -44,18 +69,12 @@ def error_project_not_available():
 
 @blueprint.route('/<project_url>/create-repo', methods=['POST'])
 @require_login(require_cap='svn-use')
-@project_view()
+@require_project_put()
 def create_repo(project: pillarsdk.Project):
     log.info('going to create repository for project url=%r on behalf of user %s (%s)',
              project.url, current_user.user_id, current_user.email)
 
     from . import exceptions
-
-    if 'PUT' not in project.allowed_methods:
-        log.warning('User %s has no PUT access to project %s (id=%s) but wants to '
-                    'create a Subversion repository; denying access',
-                    current_user.user_id, project.url, project['_id'])
-        raise wz_exceptions.Forbidden()
 
     try:
         current_svnman.create_repo(project, f'{current_user.full_name} <{current_user.email}>')
@@ -74,16 +93,15 @@ def create_repo(project: pillarsdk.Project):
 
 @blueprint.route('/<project_url>/delete-repo/<repo_id>', methods=['POST'])
 @require_login(require_cap='svn-use')
-def delete_repo(project_url: str, repo_id: str):
+@require_project_put()
+def delete_repo(project: pillarsdk.Project, repo_id: str):
     log.info('going to delete repository %s for project url=%r on behalf of user %s (%s)',
-             repo_id, project_url, current_user.user_id, current_user.email)
+             repo_id, project.url, current_user.user_id, current_user.email)
 
     from . import exceptions
 
-    # TODO(sybren): check project access
-
     try:
-        current_svnman.delete_repo(project_url, repo_id)
+        current_svnman.delete_repo(project, repo_id)
     except (OSError, IOError):
         log.exception('unable to reach SVNman API')
         resp = jsonify(_message='unable to reach SVNman API server')

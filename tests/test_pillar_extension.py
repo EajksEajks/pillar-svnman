@@ -117,9 +117,10 @@ class TestPillarExtension(AbstractSVNManTest):
         self.login_api_as(24 * 'a', roles={'admin'})
 
         self.project['extension_props'] = {EXTENSION_NAME: {'repo_id': 'existing-repo-id'}}
+        self.sdk_project = pillarsdk.Project(pillar.tests.mongo_to_sdk(self.project))
         put_project(self.project)
 
-        self.svnman.delete_repo(self.project['url'], 'existing-repo-id')
+        self.svnman.delete_repo(self.sdk_project, 'existing-repo-id')
         mock_delete_repo.assert_called_with('existing-repo-id')
 
         db_proj = self.fetch_project_from_db(self.proj_id)
@@ -134,10 +135,11 @@ class TestPillarExtension(AbstractSVNManTest):
         self.login_api_as(24 * 'a', roles={'admin'})
 
         self.project['extension_props'] = {EXTENSION_NAME: {'repo_id': 'existing-repo-id'}}
+        self.sdk_project = pillarsdk.Project(pillar.tests.mongo_to_sdk(self.project))
         put_project(self.project)
 
         with self.assertRaises(ValueError):
-            self.svnman.delete_repo(self.project['url'], 'other-repo-id')
+            self.svnman.delete_repo(self.sdk_project, 'other-repo-id')
         mock_delete_repo.assert_not_called()
 
         db_proj = self.fetch_project_from_db(self.proj_id)
