@@ -97,8 +97,16 @@ class API:
         :param revoke: list of usernames.
         """
 
+        # Replace the hash type indicator, as Apache only gets BCrypt
+        # when using the 2y marker.
+        def changehash(p):
+            if p[:4] in {'$2a$', '$2b$'}:
+                return f'$2y${p[4:]}'
+            return p
+
         self._log.info('Modifying access rules for repository %r', repo_id)
-        grants = [{'username': u, 'password': p} for u, p in grant]
+        grants = [{'username': u,
+                   'password': changehash(p)} for u, p in grant]
 
         resp = self._request('POST', f'repo/{repo_id}/access', json={
             'grant': grants,
