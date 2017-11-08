@@ -22,7 +22,10 @@ class AbstractSVNManTest(AbstractPillarTest):
         from svnman.remote import API
 
         self.remote: API = self.svnman.remote
-        self.proj_id, self.project = self.ensure_project_exists()
+        self.proj_id, self.project = self.ensure_project_exists(project_overrides={
+            'picture_header': None,
+            'picture_square': None,
+        })
 
         self.sdk_project = pillarsdk.Project(pillar.tests.mongo_to_sdk(self.project))
 
