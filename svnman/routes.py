@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, request
 import werkzeug.exceptions as wz_exceptions
 
 from pillar.api.utils.authorization import require_login
@@ -129,3 +129,29 @@ def project_settings(project: pillarsdk.Project, **template_args: dict):
     return render_template('svnman/project_settings/settings.html',
                            project=project,
                            **template_args)
+
+
+@blueprint.route('/<project_url>/grant-access/<repo_id>', methods=['POST'])
+@require_login(require_cap='svn-use')
+@require_project_put()
+def grant_access(project: pillarsdk.Project, repo_id: str):
+    user_id = request.form['user_id']
+    log.info('going to grant access to user %s on repository %s for project url=%r '
+             'on behalf of user %s (%s)',
+             user_id, repo_id, project.url, current_user.user_id, current_user.email)
+
+    from . import exceptions
+
+    try:
+        current_svnman.grant_access(project, repo_id, user_id)
+    except (OSError, IOError):
+        log.exception('unable to reach SVNman API')
+        resp = jsonify(_message='unable to reach SVNman API server')
+        resp.status_code = 500
+        return resp
+    except exceptions.RemoteError as ex:
+        log.error('API sent us an error: %s', ex)
+        resp = jsonify(_message=str(ex))
+        resp.status_code = 500
+        return resp
+    return '', 204

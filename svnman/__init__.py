@@ -1,16 +1,17 @@
 import logging
 import os.path
 import string
-import typing
 from urllib.parse import urljoin
 
 import flask
 from werkzeug.local import LocalProxy
+import werkzeug.exceptions as wz_exceptions
 
 import pillarsdk
 from pillar.extension import PillarExtension
 from pillar.auth import current_user
 from pillar.api.projects import utils as proj_utils
+from pillar.api.utils import str2id
 from pillar import current_app
 
 EXTENSION_NAME = 'svnman'
@@ -170,9 +171,8 @@ class SVNManExtension(PillarExtension):
 
         from . import remote, exceptions
 
+        eprops, proj = self._get_prop_props(project)
         project_id = project['_id']
-        proj = project.to_dict()
-        eprops = proj.setdefault('extension_props', {}).setdefault(EXTENSION_NAME, {})
 
         repo_id = eprops.get('repo_id')
         if repo_id:
@@ -208,19 +208,23 @@ class SVNManExtension(PillarExtension):
 
         return actual_repo_id
 
-    def delete_repo(self, project_url: str, repo_id: str):
+    def _get_prop_props(self, project: pillarsdk.Project) -> (dict, dict):
+        """Gets the project as dictionary and the extension properties."""
+
+        proj = project.to_dict()
+        eprops = proj.setdefault('extension_props', {}).setdefault(EXTENSION_NAME, {})
+        return eprops, proj
+
+    def delete_repo(self, project: pillarsdk.Project, repo_id: str):
         """Deletes an SVN repository and detaches it from the project."""
 
         from . import remote, exceptions
 
-        proj = proj_utils.get_project(project_url)
-        project_id = proj['_id']
-        eprops = proj.setdefault('extension_props', {}).setdefault(EXTENSION_NAME, {})
-
+        eprops, proj = self._get_prop_props(project)
         proj_repo_id = eprops.get('repo_id')
         if proj_repo_id != repo_id:
             self._log.warning('project %s is linked to repo %r, not to %r, refusing to delete',
-                              project_id, proj_repo_id, repo_id)
+                              proj['_id'], proj_repo_id, repo_id)
             raise ValueError()
 
         self.remote.delete_repo(repo_id)
@@ -250,6 +254,47 @@ class SVNManExtension(PillarExtension):
         projects = pillarsdk.Project.all(params, api=api)
         return projects
 
+    def grant_access(self, project: pillarsdk.Project, repo_id: str, user_id: str):
+        """Grants access to the given user."""
+
+        eprops, proj = self._get_prop_props(project)
+        proj_repo_id = eprops.get('repo_id')
+        if proj_repo_id != repo_id:
+            self._log.warning('project %s is linked to repo %r, not to %r, '
+                              'refusing to grant access',
+                              proj['_id'], proj_repo_id, repo_id)
+            raise ValueError()
+
+        db_user = self._get_db_user(proj, repo_id, user_id)
+        username = db_user['username']
+        password = '$2y$10$password-not-yet-set'
+        self._log.info('granting user %s (%r) access to repo %s of project %s',
+                       user_id, username, repo_id, proj['_id'])
+
+        self.remote.modify_access(repo_id, grant=[(username, password)], revoke=[])
+
+    def _get_db_user(self, proj, repo_id, user_id) -> dict:
+        """Returns the user from the database.
+
+        Raises a ValueError if the user is not allowed to use svn.
+        """
+
+        from pillar.auth import UserClass
+
+        user_oid = str2id(user_id)
+        db_user = current_app.db('users').find_one({'_id': user_oid})
+        if not db_user:
+            self._log.warning('user %s not found, not modifying access to repo %s of project %s',
+                              user_id, repo_id, proj['_id'])
+            raise ValueError('User not found')
+
+        thatuser = UserClass.construct('', db_user)
+        if not thatuser.has_cap('svn-use'):
+            self._log.warning('user %s has no svn-use cap, not modifying access to repo %s of'
+                              ' project %s', user_id, repo_id, proj['_id'])
+            raise wz_exceptions.UnavailableForLegalReasons('User is not allowed to use Subversion')
+
+        return db_user
 
 
 def _get_current_svnman() -> SVNManExtension:
