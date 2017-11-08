@@ -40,7 +40,7 @@ class RepoNotFound(RemoteError):
         return f'RepoNotFound({self.repo_id!r})'
 
 
-http_error_map = collections.defaultdict(RemoteError)
+http_error_map = collections.defaultdict(lambda: RemoteError)
 http_error_map.update({
     400: BadAPIRequest,
     500: InternalAPIServerError,
