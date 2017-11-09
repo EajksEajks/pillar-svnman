@@ -6,11 +6,14 @@ style.
 	section {
 		margin-bottom: 2.5em;
 	}
-	.access-users-list td {
-		padding: 0 0.2em;
+	.access-users-list td, .access-users-list th {
+		padding: 0 1em;
 	}
 	.access-users-list tr.self td {
 		font-weight: bold;
+	}
+	.access-users-list .col-username {
+		font-family: 'Noto Mono', monospace;
 	}
 | {% endblock head %}
 
@@ -60,7 +63,7 @@ style.
 							| {% if current_user.objectid == user['_id'] %}
 							small (You)
 							| {% endif %}
-					td.copy-to-clipboard(data-clipboard-text="{{ userinfo['username'] }}") {{ userinfo['username'] }}
+					td.col-username.copy-to-clipboard(data-clipboard-text="{{ userinfo['username'] }}") {{ userinfo['username'] }}
 					td.col-password
 						| {% if userinfo['pw_set'] %}
 						button.btn.btn-default(title="{% if is_self %}You have{% else %}The user has{% endif %} set a password; click to change it.") Change password
@@ -139,22 +142,22 @@ script.
 
 	function grantUser(user_id) {
 		toastr.info('Granting access to user')
-		ajax(grant_access_url, {user_id: user_id});
+		ajax(grant_access_url, {user_id: user_id}, 'Error granting access: ');
 	}
 
 	function revokeUser(user_id) {
 		toastr.info('Revoking access from user')
-		ajax(revoke_access_url, {user_id: user_id});
+		ajax(revoke_access_url, {user_id: user_id}, 'Error revoking access: ');
 	}
 
 	function deleteRepo() {
 		if (!confirm('Are you sure you want to delete this repository? This CANNOT be undone! You WILL loose this data.'))
 			return;
 		toastr.info('Deleting repository')
-		ajax(delete_repo_url);
+		ajax(delete_repo_url, null, 'Error deleting repository: ');
 	}
 
-	function ajax(url, payload) {
+	function ajax(url, payload, error_msg) {
 		$.ajax({
 			url: url,
 			data: payload,
@@ -164,7 +167,7 @@ script.
 			window.location.reload();
 		})
 		.fail(function(err) {
-			var err_elt = xhrErrorResponseElement(err, 'Error granting access: ');
+			var err_elt = xhrErrorResponseElement(err, error_msg);
 			toastr.error(err_elt);
 		});
 	}
