@@ -16,11 +16,13 @@ from pillar.api.utils.authorization import require_login
 from pillar import current_app
 
 EXTENSION_NAME = 'svnman'
+UNSET_PASSWORD = '$2y$1$password-empty'
 
 
 # SVNman stores the following keys in the project extension properties:
 # repo_id: the Subversion repository ID
-# users: list of ObjectIDs of users having access to the project
+# users: dict of users having access to the project:
+#        {'user_id_as_str': {'username': 'uname-on-svn', 'pw_is_set': bool}}
 
 class SVNManExtension(PillarExtension):
     user_caps = {
@@ -123,20 +125,42 @@ class SVNManExtension(PillarExtension):
 
         from .routes import project_settings
 
-        remote_url = current_app.config['SVNMAN_REPO_URL']
+        if not self.is_svnman_project(project):
+            return flask.render_template('svnman/project_settings/offer_create_repo.html',
+                                         project=project, **template_args)
 
-        if self.is_svnman_project(project):
-            repo_id = project.extension_props[EXTENSION_NAME].repo_id
-            svn_url = urljoin(remote_url, repo_id)
+        remote_url = current_app.config['SVNMAN_REPO_URL']
+        users_coll = current_app.db('users')
+
+        # list of {'username': 'uname-on-svn', 'db': user in our DB, 'pw_is_set': bool} dicts.
+        svn_users = []
+        eprops = project.extension_props[EXTENSION_NAME]
+        repo_id = eprops.repo_id
+        svn_url = urljoin(remote_url, repo_id)
+
+        if eprops.users:  # may be None
+            userdict = eprops.users.to_dict()
+            # Jump through some hoops to collect the user info from MongoDB in one query.
+            svninfo = {str2id(uid): userinfo for uid, userinfo in userdict.items()}
+            db_users = users_coll.find(
+                {'_id': {'$in': list(svninfo.keys())}},
+                projection={'full_name': 1, 'email': 1},
+            )
+            for db_user in db_users:
+                svninfo.setdefault(db_user['_id'], {})['db'] = db_user
+
+            svn_users = sorted(svninfo.values(), key=lambda item: item.get('username', ''))
         else:
             svn_url = ''
             repo_id = ''
 
-        return project_settings(project,
-                                svn_url=svn_url,
-                                repo_id=repo_id,
-                                remote_url=remote_url,
-                                **template_args)
+        return flask.render_template('svnman/project_settings/settings.html',
+                                     project=project,
+                                     svn_url=svn_url,
+                                     repo_id=repo_id,
+                                     remote_url=remote_url,
+                                     svn_users=svn_users,
+                                     **template_args)
 
     def is_svnman_project(self, project: pillarsdk.Project) -> bool:
         """Checks whether the project is correctly set up for SVNman."""
@@ -256,24 +280,69 @@ class SVNManExtension(PillarExtension):
         projects = pillarsdk.Project.all(params, api=api)
         return projects
 
-    def grant_access(self, project: pillarsdk.Project, repo_id: str, user_id: str):
-        """Grants access to the given user."""
+    def hash_password(self, passwd: str) -> str:
+        """Returns the BCrypt'ed password."""
+
+        import bcrypt
+
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(passwd.encode(), salt)
+        return hashed.decode()
+
+    def modify_access(self, project: pillarsdk.Project, repo_id: str, *,
+                      grant_user_id: str = '', grant_passwd: str = '',
+                      revoke_user_id: str = ''):
+        """Grants or revokes access to/from the given user."""
+
+        if bool(grant_user_id) == bool(revoke_user_id):
+            raise ValueError('pass either grant_user_id or revoke_user_id, not both/none')
+
+        if grant_user_id:
+            grant_revoke = 'grant'
+            grant_passwd = self.hash_password(grant_passwd) if grant_passwd else UNSET_PASSWORD
+        else:
+            grant_revoke = 'revoke'
 
         eprops, proj = self._get_prop_props(project)
         proj_repo_id = eprops.get('repo_id')
+        proj_oid = str2id(proj['_id'])
+
         if proj_repo_id != repo_id:
             self._log.warning('project %s is linked to repo %r, not to %r, '
-                              'refusing to grant access',
-                              proj['_id'], proj_repo_id, repo_id)
+                              'refusing to %s access',
+                              proj_oid, proj_repo_id, grant_revoke, repo_id)
             raise ValueError()
 
-        db_user = self._get_db_user(proj, repo_id, user_id)
-        username = db_user['username']
-        password = '$2y$10$password-not-yet-set'
-        self._log.info('granting user %s (%r) access to repo %s of project %s',
-                       user_id, username, repo_id, proj['_id'])
+        users = eprops.setdefault('users', {})
+        if grant_user_id:
+            db_user = self._get_db_user(proj, repo_id, grant_user_id)
+            username = db_user['username']
+            grant = [(username, grant_passwd)]
+            revoke = []
+            users[grant_user_id] = {'username': username,
+                                    'pw_set': grant_passwd != UNSET_PASSWORD}
+        else:
+            user_info = users.pop(revoke_user_id, None)
+            if not user_info:
+                self._log.warning('unable to revoke user %s access from repo %s of project %s:'
+                                  ' that user has no access', revoke_user_id, repo_id, proj_oid)
+                return
+            username = user_info['username']
+            grant = []
+            revoke = [username]
 
-        self.remote.modify_access(repo_id, grant=[(username, password)], revoke=[])
+        self._log.info('%sing user %s (%r) access to repo %s of project %s',
+                       grant_revoke.rstrip('e'), grant_user_id or revoke_user_id, username,
+                       repo_id, proj_oid)
+
+        self.remote.modify_access(repo_id, grant=grant, revoke=revoke)
+
+        proj_coll = current_app.db('projects')
+        res = proj_coll.update_one({'_id': proj_oid},
+                                   {'$set': {f'extension_props.{EXTENSION_NAME}.users': users}})
+        if res.matched_count != 1:
+            self._log.error('Matched count was %d, result: %s', res.matched_count, res.raw_result)
+            raise ValueError('Error updating MongoDB')
 
     def _get_db_user(self, proj, repo_id, user_id) -> dict:
         """Returns the user from the database.

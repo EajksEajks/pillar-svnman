@@ -3,8 +3,10 @@
 | {% block page_title %}Subversion settings for {{ project.name }}{% endblock %}
 
 | {% block head %}
+link(href="{{ url_for('static_svnman', filename='assets/css/svnman.css') }}", rel='stylesheet')
 script(src="{{ url_for('static_svnman', filename='assets/js/generated/tutti.min.js') }}")
 script(src="{{ url_for('static_pillar', filename='assets/js/vendor/jquery.autocomplete-0.22.0.min.js') }}")
+script(src="{{ url_for('static_pillar', filename='assets/js/vendor/clipboard.min.js')}}")
 | {% endblock %}
 
 | {% block project_context_header %}

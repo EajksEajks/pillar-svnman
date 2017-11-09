@@ -1,66 +1,89 @@
 | {% extends 'svnman/project_settings/svnman_layout.html'  %}
 
+| {% block head %}
+| {{ super() }}
+style.
+	section {
+		margin-bottom: 2.5em;
+	}
+	.access-users-list td {
+		padding: 0 0.2em;
+	}
+	.access-users-list tr.self td {
+		font-weight: bold;
+	}
+| {% endblock head %}
+
 | {% block svnman_container %}
 #node-edit-form
-	#node-edit-form
-		p This project has a Subversion repository
-		p To do a checkout, use:
+	section
+		h4 Using the repository
+
+		p This project has a Subversion repository. To do a checkout, use:
 		p
 			code svn checkout {{ svn_url }} my_repo
+
+	section
+		h4 Manage Access
+		p.
+			Users in this list have read/write access to the Subversion repository. It is not
+			possible to allow read-only access. Their password is <em>not</em> their Blender ID
+			password, but has to be set separately.
+		p.
+			Your login for Subversion is <a href='{{ url_for('settings.profile') }}'>your username</a>
+			as it was at the moment you were granted access to the repository.
+
+		.access-users-search
+			.form-group
+				input#user-search.form-control(
+					name='contacts',
+					type='text',
+					placeholder='Grant user access by name')
+
+		table.access-users-list
+			tbody
+				tr
+					th
+					th Subversion Login
+					th Password set?
+					th
+
+				| {% for userinfo in svn_users %}
+				| {% set user=userinfo['db'] %}
+				| {% set is_self=current_user.user_id == user['_id'] %}
+				tr(data-user-id="{{ user['_id'] }}",
+					class="{% if is_self %}self{% endif %}")
+					td
+						img.access-users-avatar(src="{{ user['email'] | gravatar(24) }}")
+						span.access-users-name
+							| {{ user['full_name'] }}
+							| {% if current_user.objectid == user['_id'] %}
+							small (You)
+							| {% endif %}
+					td.copy-to-clipboard(data-clipboard-text="{{ userinfo['username'] }}") {{ userinfo['username'] }}
+					td.col-password
+						| {% if userinfo['pw_set'] %}
+						button.btn.btn-default(title="{% if is_self %}You have{% else %}The user has{% endif %} set a password; click to change it.") Change password
+						| {% else %}
+						i.pi-cancel
+						button.btn.btn-warning(title="{% if is_self %}You have{% else %}The user has{% endif %} no password; click to set it.") Set password
+						| {% endif %}
+					td.col-revoke
+						| {%     if is_self %}
+						button.user-remove(title="Revoke your own access")
+							i.pi-trash
+						| {%     else %}
+						button.user-remove(title="Revoke access of this user")
+							i.pi-trash
+						| {%     endif %}
+
+			| {% endfor %}
+
+	section
+		h4 Dangerous operations
 		p
 			button.btn.btn-danger(onclick='deleteRepo()') Delete Subversion repository
-
-		h4 Repository Access
-
-		.row
-			.col-md-6
-				.access-users-search
-					.form-group
-						input#user-search.form-control(
-							name='contacts',
-							type='text',
-							placeholder='Grant user access by name')
-
-				ul.access-users-list
-					| {% for user in svn_users %}
-					li.access-users-item(
-						data-user-id="{{ user['_id'] }}",
-						class="{% if current_user.objectid == user['_id'] %}self{% endif %}")
-						.access-users-avatar
-							img(src="{{ user['avatar'] }}")
-						.access-users-details
-							span.access-users-name
-								| {{ user['full_name'] }}
-								| {% if current_user.objectid == user['_id'] %}
-								small (You)
-								| {% endif %}
-							span.access-users-extra {{ user['username'] }}
-						.access-users-action
-							| {# Only allow deletion if we are: admin, project users, or current_user in the team #}
-							| {% if can_abandon_manager %}
-							| {%     if current_user.objectid == user['_id'] %}
-							button.user-remove(title="Revoke your own access")
-								i.pi-trash
-							| {%     else %}
-							button.user-remove(title="Revoke access of this user")
-								i.pi-trash
-							| {%     endif %}
-							| {% endif %}
-
-					| {% endfor %}
-
-			.col-md-6
-				.access-users-info
-					h4 What can these users do?
-					p.
-						Users in this list have read/write access to the Subversion repository. It
-						is not possible to allow read-only access.
-					p.
-						Their password is <em>not</em> their Blender ID password, but has to be set
-						separately.
-
-
-
+		p Note that deleting an operation is permanent and <em>cannot be undone</em>. Use with caution.
 
 | {% endblock svnman_container %}
 
@@ -69,6 +92,10 @@ script.
 	var algolia_application_id = '{{config.ALGOLIA_USER}}'
 	var algolia_public_key = '{{config.ALGOLIA_PUBLIC_KEY}}';
 	var algolia_index_users = '{{config.ALGOLIA_INDEX_USERS}}';
+
+	var grant_access_url = '{{ url_for( "svnman.grant_access", project_url=project.url, repo_id=repo_id) }}';
+	var revoke_access_url = '{{ url_for( "svnman.revoke_access", project_url=project.url, repo_id=repo_id) }}';
+	var delete_repo_url = '{{ url_for( "svnman.delete_repo", project_url=project.url, repo_id=repo_id) }}';
 
 	$('#user-search').userSearch(algolia_application_id, algolia_public_key, algolia_index_users,
 		function(event, hit, dataset) {
@@ -90,40 +117,71 @@ script.
 		}
 	);
 
+	$('.access-users-list .col-password button').click(function() {
+		var user_id = $(this).closest('*[data-user-id]').data('user-id');
+		setPassword(user_id);
+	})
+
+	$('.access-users-list .col-revoke button').click(function() {
+		var user_id = $(this).closest('*[data-user-id]').data('user-id');
+		revokeUser(user_id);
+	})
+
+	function setPassword(user_id) {
+		var randomstring = Password.generate(16);
+
+		password = prompt("Provide a new password. We have generated a random one for you. " +
+			"It's up to you to send this password to the user in a secure way.", randomstring);
+		if (!password) return;
+
+		ajax(grant_access_url, {user_id: user_id, password: password});
+	}
+
 	function grantUser(user_id) {
-		console.log('grant to', user_id);
-		$.ajax({
-			url: '{{ url_for( "svnman.grant_access", project_url=project.url, repo_id=repo_id) }}',
-			data: {user_id: user_id},
-			method: 'POST',
-		})
-		.done(function() {
-			window.location.reload();
-		})
-		.fail(function(err) {
-			if (err.status == 451) {
-				toastr.error("This user has no Subversion usage in their subscription package.");
-				return;
-			}
-			var err_elt = xhrErrorResponseElement(err, 'Error granting access: ');
-			toastr.error(err_elt);
-		});
+		toastr.info('Granting access to user')
+		ajax(grant_access_url, {user_id: user_id});
+	}
+
+	function revokeUser(user_id) {
+		toastr.info('Revoking access from user')
+		ajax(revoke_access_url, {user_id: user_id});
 	}
 
 	function deleteRepo() {
 		if (!confirm('Are you sure you want to delete this repository? This CANNOT be undone! You WILL loose this data.'))
 			return;
+		toastr.info('Deleting repository')
+		ajax(delete_repo_url);
+	}
 
+	function ajax(url, payload) {
 		$.ajax({
-			url: '{{ url_for( "svnman.delete_repo", project_url=project.url, repo_id=repo_id) }}',
+			url: url,
+			data: payload,
 			method: 'POST',
 		})
 		.done(function() {
 			window.location.reload();
 		})
 		.fail(function(err) {
-			var err_elt = xhrErrorResponseElement(err, 'Error deleting your repository: ');
+			var err_elt = xhrErrorResponseElement(err, 'Error granting access: ');
 			toastr.error(err_elt);
 		});
 	}
+
+	var clipboard = null;
+	function createClipboard() {
+		if (clipboard != null) {
+			clipboard.destroy();
+		}
+
+		clipboard = new Clipboard('.copy-to-clipboard');
+
+		clipboard.on('success', function(e) {
+			$(e.trigger).flashOnce();
+			toastr.success('Copied to clipboard');
+		});
+	}
+	createClipboard();
+
 | {% endblock %}

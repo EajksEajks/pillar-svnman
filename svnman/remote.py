@@ -115,9 +115,11 @@ class API:
                 return f'$2y${p[4:]}'
             return p
 
-        self._log.info('Modifying access rules for repository %r', repo_id)
         grants = [{'username': u,
                    'password': changehash(p)} for u, p in grant]
+
+        self._log.info('Modifying access rules for repository %r: grants=%s revokes=%s',
+                       repo_id, [u for u, p in grant], revoke)
 
         resp = self._request('POST', f'repo/{repo_id}/access', json={
             'grant': grants,
