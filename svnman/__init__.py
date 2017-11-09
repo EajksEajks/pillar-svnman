@@ -232,6 +232,12 @@ class SVNManExtension(PillarExtension):
         eprops['repo_id'] = actual_repo_id
         proj_utils.put_project(proj)
 
+        # Make sure that the project object is updated as well.
+        if project.extension_props is None:
+            project.extension_props = {EXTENSION_NAME: pillarsdk.Resource()}
+
+        project.extension_props[EXTENSION_NAME].repo_id = actual_repo_id
+
         return actual_repo_id
 
     def _get_prop_props(self, project: pillarsdk.Project) -> (dict, dict):

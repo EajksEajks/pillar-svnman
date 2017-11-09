@@ -106,7 +106,10 @@ def create_repo(project: pillarsdk.Project):
     log.info('going to create repository for project url=%r on behalf of user %s (%s)',
              project.url, current_user.user_id, current_user.email)
 
-    current_svnman.create_repo(project, f'{current_user.full_name} <{current_user.email}>')
+    repo_id = current_svnman.create_repo(project,
+                                         f'{current_user.full_name} <{current_user.email}>')
+    current_svnman.modify_access(project, repo_id, grant_user_id=str(current_user.user_id))
+
     return '', 204
 
 
