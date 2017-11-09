@@ -12,6 +12,7 @@ from pillar.extension import PillarExtension
 from pillar.auth import current_user
 from pillar.api.projects import utils as proj_utils
 from pillar.api.utils import str2id
+from pillar.api.utils.authorization import require_login
 from pillar import current_app
 
 EXTENSION_NAME = 'svnman'
@@ -109,6 +110,7 @@ class SVNManExtension(PillarExtension):
     def has_project_settings(self) -> bool:
         return current_user.has_cap('svn-use')
 
+    @require_login(require_cap='svn-use', redirect_to_login=True)
     def project_settings(self, project: pillarsdk.Project, **template_args: dict) -> flask.Response:
         """Renders the project settings page for this extension.
 

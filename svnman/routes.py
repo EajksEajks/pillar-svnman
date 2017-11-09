@@ -56,11 +56,9 @@ def index():
                            projects=projects)
 
 
-def error_project_not_available():
-    import flask
-
-    if flask.request.is_xhr:
-        resp = flask.jsonify({'_error': 'Subversion service not available'})
+def error_service_not_available():
+    if request.is_xhr:
+        resp = jsonify({'_message': 'Subversion service not available to your account'})
         resp.status_code = 403
         return resp
 
@@ -68,7 +66,7 @@ def error_project_not_available():
 
 
 @blueprint.route('/<project_url>/create-repo', methods=['POST'])
-@require_login(require_cap='svn-use')
+@require_login(require_cap='svn-use', error_view=error_service_not_available)
 @require_project_put()
 def create_repo(project: pillarsdk.Project):
     log.info('going to create repository for project url=%r on behalf of user %s (%s)',
@@ -92,7 +90,7 @@ def create_repo(project: pillarsdk.Project):
 
 
 @blueprint.route('/<project_url>/delete-repo/<repo_id>', methods=['POST'])
-@require_login(require_cap='svn-use')
+@require_login(require_cap='svn-use', error_view=error_service_not_available)
 @require_project_put()
 def delete_repo(project: pillarsdk.Project, repo_id: str):
     log.info('going to delete repository %s for project url=%r on behalf of user %s (%s)',
@@ -118,9 +116,6 @@ def delete_repo(project: pillarsdk.Project, repo_id: str):
 def project_settings(project: pillarsdk.Project, **template_args: dict):
     """Renders the project settings page for Subversion projects."""
 
-    if not current_user.has_cap('svn-use'):
-        raise wz_exceptions.Forbidden()
-
     # Based on the project state, we can render a different template.
     if not current_svnman.is_svnman_project(project):
         return render_template('svnman/project_settings/offer_create_repo.html',
@@ -132,7 +127,7 @@ def project_settings(project: pillarsdk.Project, **template_args: dict):
 
 
 @blueprint.route('/<project_url>/grant-access/<repo_id>', methods=['POST'])
-@require_login(require_cap='svn-use')
+@require_login(require_cap='svn-use', error_view=error_service_not_available)
 @require_project_put()
 def grant_access(project: pillarsdk.Project, repo_id: str):
     user_id = request.form['user_id']
