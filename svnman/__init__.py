@@ -150,9 +150,6 @@ class SVNManExtension(PillarExtension):
                 svninfo.setdefault(db_user['_id'], {})['db'] = db_user
 
             svn_users = sorted(svninfo.values(), key=lambda item: item.get('username', ''))
-        else:
-            svn_url = ''
-            repo_id = ''
 
         return flask.render_template('svnman/project_settings/settings.html',
                                      project=project,
