@@ -7,6 +7,10 @@ from pillar import attrs_extra
 
 from . import exceptions
 
+# For replacing the hash type indicator, as Apache only
+# understands BCrypt when using the 2y marker.
+HASH_TYPES_TO_REPLACE = {'$2a$', '$2b$'}
+
 
 @attr.s
 class RepoDescription:
@@ -107,7 +111,7 @@ class API:
         # Replace the hash type indicator, as Apache only gets BCrypt
         # when using the 2y marker.
         def changehash(p):
-            if p[:4] in {'$2a$', '$2b$'}:
+            if p[:4] in HASH_TYPES_TO_REPLACE:
                 return f'$2y${p[4:]}'
             return p
 
