@@ -259,9 +259,9 @@ class SVNManExtension(PillarExtension):
         self.remote.delete_repo(repo_id)
         self._log.info('deleted Subversion repository %s', repo_id)
 
-        # Update the project to remove the repository ID.
+        # Update the project to remove the repository ID and assigned users.
         eprops.pop('repo_id', None)
-        eprops.pop('access', None)
+        eprops.pop('users', None)
         proj_utils.put_project(proj)
 
     def svnman_projects(self, *, projection: dict = None):

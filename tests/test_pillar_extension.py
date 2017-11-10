@@ -116,7 +116,10 @@ class TestPillarExtension(AbstractSVNManTest):
         self.enter_app_context()
         self.login_api_as(24 * 'a', roles={'admin'})
 
-        self.project['extension_props'] = {EXTENSION_NAME: {'repo_id': 'existing-repo-id'}}
+        self.project['extension_props'] = {EXTENSION_NAME: {
+            'repo_id': 'existing-repo-id',
+            'users': {'5551234': {'set_pw': True, 'username': 'heyhey'}},
+        }}
         self.sdk_project = pillarsdk.Project(pillar.tests.mongo_to_sdk(self.project))
         put_project(self.project)
 
