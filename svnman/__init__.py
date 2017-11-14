@@ -27,7 +27,6 @@ UNSET_PASSWORD = '$2y$1$password-empty'
 class SVNManExtension(PillarExtension):
     user_caps = {
         'subscriber-pro': frozenset({'svn-use'}),
-        'demo': frozenset({'svn-use'}),
     }
 
     def __init__(self):
