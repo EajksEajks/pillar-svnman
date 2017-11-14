@@ -5,7 +5,7 @@
 import setuptools
 
 setuptools.setup(
-    name='pillar-svnman',
+    name='svnman',
     version='0.1-dev',
     packages=setuptools.find_packages('.', exclude=['test']),
     install_requires=[],
