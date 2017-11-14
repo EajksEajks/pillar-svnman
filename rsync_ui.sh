@@ -24,7 +24,7 @@ if [ ! -d "$MY_DIR" ]; then
 fi
 
 ASSETS="$MY_DIR/svnman/static/assets/"
-TEMPLATES="$MY_DIR/svnman/templates/pillar-svnman"
+TEMPLATES="$MY_DIR/svnman/templates/svnman"
 
 if [ ! -d "$ASSETS" ]; then
     echo "Unable to find assets dir $ASSETS"
