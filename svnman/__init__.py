@@ -24,6 +24,21 @@ UNSET_PASSWORD = '$2y$1$password-empty'
 # users: dict of users having access to the project:
 #        {'user_id_as_str': {'username': 'uname-on-svn', 'pw_is_set': bool}}
 
+
+# TODO: this is only implemented in Werkzeug 0.12, replace when we upgrade to that.
+class UnavailableForLegalReasons(wz_exceptions.HTTPException):
+
+    """*451* `Unavailable For Legal Reasons`
+
+    This status code indicates that the server is denying access to the
+    resource as a consequence of a legal demand.
+    """
+    code = 451
+    description = (
+        'Unavailable for legal reasons.'
+    )
+
+
 class SVNManExtension(PillarExtension):
     user_caps = {
         'subscriber-pro': frozenset({'svn-use'}),
@@ -365,7 +380,7 @@ class SVNManExtension(PillarExtension):
         if not thatuser.has_cap('svn-use'):
             self._log.warning('user %s has no svn-use cap, not modifying access to repo %s of'
                               ' project %s', user_id, repo_id, proj['_id'])
-            raise wz_exceptions.UnavailableForLegalReasons('User is not allowed to use Subversion')
+            raise UnavailableForLegalReasons('User is not allowed to use Subversion')
 
         return db_user
 
