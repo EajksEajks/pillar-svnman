@@ -92,16 +92,11 @@ style.
 
 | {% block footer_scripts %}
 script.
-	var algolia_application_id = '{{config.ALGOLIA_USER}}'
-	var algolia_public_key = '{{config.ALGOLIA_PUBLIC_KEY}}';
-	var algolia_index_users = '{{config.ALGOLIA_INDEX_USERS}}';
-
 	var grant_access_url = '{{ url_for( "svnman.grant_access", project_url=project.url, repo_id=repo_id) }}';
 	var revoke_access_url = '{{ url_for( "svnman.revoke_access", project_url=project.url, repo_id=repo_id) }}';
 	var delete_repo_url = '{{ url_for( "svnman.delete_repo", project_url=project.url, repo_id=repo_id) }}';
 
-	$('#user-search').userSearch(algolia_application_id, algolia_public_key, algolia_index_users,
-		function(event, hit, dataset) {
+	$('#user-search').userSearch(function(event, hit, dataset) {
 			var $existing = $('li.access-users-item[data-user-id="' + hit.objectID + '"]');
 			if ($existing.length) {
 				$existing
