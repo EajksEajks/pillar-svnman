@@ -24,7 +24,7 @@ style.
 
 		| {% for proj in projects._items %}
 		h4
-			a(href="{{ url_for('pillar.web.projects.edit_extension', project_url=proj.url, extension='svnman') }}") {{ proj.name }}
+			a(href="{{ url_for('projects.edit_extension', project_url=proj.url, extension_name='svnman') }}") {{ proj.name }}
 		| {% else %}
 		h4 No Subversion repositories
 
