@@ -9,12 +9,14 @@ script(src="{{ url_for('static_pillar', filename='assets/js/vendor/jquery.autoco
 script(src="{{ url_for('static_pillar', filename='assets/js/vendor/clipboard.min.js')}}")
 | {% endblock %}
 
-| {% block project_context_header %}
-span#project-edit-title
-	| {{ self.page_title() }}
-| {% endblock %}
-
 | {% block project_context %}
+.container-fluid
+	.row
+		.col-md-12
+			h5.pt-3 {{ self.page_title() }}
+
+			hr
+
 #node-edit-container
 	| {% block svnman_container %}
 	| {% endblock svnman_container %}

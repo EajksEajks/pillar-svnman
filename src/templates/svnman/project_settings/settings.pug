@@ -1,36 +1,21 @@
 | {% extends 'svnman/project_settings/svnman_layout.html'  %}
 
-| {% block head %}
-| {{ super() }}
-style.
-	section {
-		margin-bottom: 2.5em;
-	}
-	.access-users-list td, .access-users-list th {
-		padding: 0 1em;
-	}
-	.access-users-list tr.self td {
-		font-weight: bold;
-	}
-	.access-users-list .col-username {
-		font-family: 'Noto Mono', monospace;
-	}
-| {% endblock head %}
-
 | {% block svnman_container %}
 #node-edit-form
 	section
-		h4 Using the repository
+		h4 Checkout
 
-		p This project has a Subversion repository. To do a checkout, use:
+		p Get a copy of this repository by using:
 		p
 			code svn checkout {{ svn_url }} my_repo
+
+	hr
 
 	section
 		h4 Manage Access
 		p.
 			Users in this list have read/write access to the Subversion repository. It is not
-			possible to allow read-only access. Their password is <em>not</em> their Blender ID
+			possible to allow read-only access. Their password is <em><strong>not</strong></em> their Blender ID
 			password, but has to be set separately.
 		p.
 			Your login for Subversion is <a href='{{ url_for('settings.profile') }}'>your username</a>
@@ -43,50 +28,59 @@ style.
 					type='text',
 					placeholder='Grant user access by name')
 
-		table.access-users-list
-			tbody
+		table.w-100(class="access-users-list")
+			thead
 				tr
 					th
 					th Subversion Login
-					th Password set?
+					th Password Set
 					th
-
+			tbody
 				| {% for userinfo in svn_users %}
 				| {% set user=userinfo['db'] %}
 				| {% set is_self=current_user.user_id == user['_id'] %}
-				tr(data-user-id="{{ user['_id'] }}",
+				tr.border-bottom(data-user-id="{{ user['_id'] }}",
 					class="{% if is_self %}self{% endif %}")
-					td
-						img.access-users-avatar(src="{{ user['email'] | gravatar(24) }}")
+					td.py-3
+						img.rounded-circle.mx-2(
+							src="{{ user['email'] | gravatar(24) }}")
 						span.access-users-name
 							| {{ user['full_name'] }}
 							| {% if current_user.objectid == user['_id'] %}
 							small (You)
 							| {% endif %}
-					td.col-username.copy-to-clipboard(data-clipboard-text="{{ userinfo['username'] }}") {{ userinfo['username'] }}
-					td.col-password
+					td.js-copy-to-clipboard.cursor-pointer(
+						data-clipboard-text="{{ userinfo['username'] }}",
+						title="Click to copy username to clipboard") {{ userinfo['username'] }}
+					td.pr-3(class="col-password")
 						| {% if userinfo['pw_set'] %}
-						button.btn.btn-default(title="{% if is_self %}You have{% else %}The user has{% endif %} set a password; click to change it.") Change password
+						button.btn.btn-sm.btn-outline-secondary.btn-block(title="{% if is_self %}You have{% else %}The user has{% endif %} set a password; click to change it.")
+							| Change Password
 						| {% else %}
 						i.pi-cancel
-						button.btn.btn-warning(title="{% if is_self %}You have{% else %}The user has{% endif %} no password; click to set it.") Set password
+						button.btn.btn-sm.btn-outline-primary.btn-block(title="{% if is_self %}You have{% else %}The user has{% endif %} no password; click to set it.")
+							| Set Password
 						| {% endif %}
-					td.col-revoke
+					td(class="col-revoke")
 						| {%     if is_self %}
-						button.user-remove(title="Revoke your own access")
+						button.btn.btn-sm.btn-outline-danger(title="Revoke your own access")
 							i.pi-trash
 						| {%     else %}
-						button.user-remove(title="Revoke access of this user")
+						button.btn.btn-sm.btn-outline-danger(title="Revoke access of this user")
 							i.pi-trash
 						| {%     endif %}
 
 			| {% endfor %}
 
+	hr
+
 	section
-		h4 Dangerous operations
+		h4 Dangerous Operations
 		p
-			button.btn.btn-danger(onclick='deleteRepo()') Delete Subversion repository
-		p Note that deleting an operation is permanent and <em>cannot be undone</em>. Use with caution.
+			button.btn.btn-danger.px-3(onclick='deleteRepo()')
+				i.pi-trash.pr-2
+				| Delete Subversion repository
+		p.text-danger Note that deleting an operation is permanent and <em><strong>cannot be undone</strong></em>. Use with caution.
 
 | {% endblock svnman_container %}
 
@@ -173,7 +167,7 @@ script.
 			clipboard.destroy();
 		}
 
-		clipboard = new Clipboard('.copy-to-clipboard');
+		clipboard = new Clipboard('.js-copy-to-clipboard');
 
 		clipboard.on('success', function(e) {
 			$(e.trigger).flashOnce();
