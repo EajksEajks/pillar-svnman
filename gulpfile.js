@@ -1,26 +1,27 @@
 var argv         = require('minimist')(process.argv.slice(2));
 var autoprefixer = require('gulp-autoprefixer');
+var cache        = require('gulp-cached');
 var chmod        = require('gulp-chmod');
 var concat       = require('gulp-concat');
 var git          = require('gulp-git');
 var gulp         = require('gulp');
 var gulpif       = require('gulp-if');
-var pug          = require('gulp-pug');
 var livereload   = require('gulp-livereload');
 var plumber      = require('gulp-plumber');
+var pug          = require('gulp-pug');
 var rename       = require('gulp-rename');
 var sass         = require('gulp-sass');
 var sourcemaps   = require('gulp-sourcemaps');
-var uglify       = require('gulp-uglify');
-var cache        = require('gulp-cached');
+var uglify       = require('gulp-uglify-es').default;
 
 var enabled = {
-    uglify: argv.production,
-    maps: argv.production,
-    failCheck: argv.production,
-    prettyPug: !argv.production,
-    liveReload: !argv.production,
+    chmod: argv.production,
     cleanup: argv.production,
+    failCheck: argv.production,
+    liveReload: !argv.production,
+    maps: argv.production,
+    prettyPug: !argv.production,
+    uglify: argv.production,
 };
 
 var destination = {
@@ -67,7 +68,7 @@ gulp.task('scripts', function() {
         .pipe(gulpif(enabled.uglify, uglify()))
         .pipe(rename({suffix: '.min'}))
         .pipe(gulpif(enabled.maps, sourcemaps.write(".")))
-        .pipe(chmod(644))
+        .pipe(gulpif(enabled.chmod, chmod(644)))
         .pipe(gulp.dest(destination.js))
         .pipe(gulpif(enabled.liveReload, livereload()));
 });
@@ -82,7 +83,7 @@ gulp.task('scripts_tutti', function() {
         .pipe(concat("tutti.min.js"))
         .pipe(gulpif(enabled.uglify, uglify()))
         .pipe(gulpif(enabled.maps, sourcemaps.write(".")))
-        .pipe(chmod(644))
+        .pipe(gulpif(enabled.chmod, chmod(644)))
         .pipe(gulp.dest(destination.js))
         .pipe(gulpif(enabled.liveReload, livereload()));
 });
