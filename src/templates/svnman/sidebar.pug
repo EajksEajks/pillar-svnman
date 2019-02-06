@@ -1,8 +1,8 @@
 | {% if current_user.has_cap('svn-use') %}
-li.tabs-svnman(
-	title="Subversion",
-	data-toggle="tooltip",
-	data-placement="right")
-	a(href="{{ url_for('projects.edit_extension', project_url=project.url, extension_name='svnman')}}")
+li
+	a.navbar-item(
+		href=href="{{ url_for('projects.edit_extension', project_url=project.url, extension_name='svnman')}}"
+		title="Subversion")
 		i.pi-svnman
+		span Subversion
 | {% endif %}
