@@ -3,7 +3,7 @@ import json
 import requests
 import responses
 
-from abstract_svnman_test import AbstractSVNManTest
+from .abstract_svnman_test import AbstractSVNManTest
 
 
 class TestAPI(AbstractSVNManTest):

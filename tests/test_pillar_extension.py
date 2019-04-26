@@ -3,9 +3,8 @@ from unittest import mock
 
 import pillarsdk
 import pillar.tests
-import werkzeug.exceptions as wz_exceptions
 
-from abstract_svnman_test import AbstractSVNManTest
+from .abstract_svnman_test import AbstractSVNManTest
 
 
 class TestPillarExtension(AbstractSVNManTest):

@@ -2,6 +2,8 @@
 
 ## Version 1.1 (in development)
 
+- Switched to [Poetry](https://poetry.eustace.io/) for dependency management.
+
 
 ## Version 1.0 (2019-05-10)
 
