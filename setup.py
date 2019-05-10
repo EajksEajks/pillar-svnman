@@ -6,7 +6,7 @@ import setuptools
 
 setuptools.setup(
     name='svnman',
-    version='0.1-dev',
+    version='1.0',
     packages=setuptools.find_packages('.', exclude=['test']),
     install_requires=[],
     tests_require=[
