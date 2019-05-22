@@ -4,7 +4,7 @@ from unittest import mock
 import pillarsdk
 import pillar.tests
 
-from .abstract_svnman_test import AbstractSVNManTest
+from tests.abstract_svnman_test import AbstractSVNManTest
 
 
 class TestPillarExtension(AbstractSVNManTest):
