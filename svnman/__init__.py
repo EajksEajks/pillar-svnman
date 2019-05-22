@@ -13,6 +13,7 @@ from pillar.auth import current_user
 from pillar.api.projects import utils as proj_utils
 from pillar.api.utils import str2id
 from pillar.api.utils.authorization import require_login
+from pillar.web import utils as web_utils
 from pillar import current_app
 
 EXTENSION_NAME = 'svnman'
@@ -241,6 +242,7 @@ class SVNManExtension(PillarExtension):
 
         # Update the project to include the repository ID.
         eprops['repo_id'] = actual_repo_id
+        web_utils.unattach_project_pictures(proj)
         proj_utils.put_project(proj)
 
         # Make sure that the project object is updated as well.
