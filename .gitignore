@@ -12,3 +12,4 @@ __pycache__
 /svnman/templates/
 /svnman/static/assets/css/
 /svnman/static/assets/js/generated/
+/poetry.lock
