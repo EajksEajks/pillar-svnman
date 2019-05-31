@@ -42,8 +42,8 @@
 				tr.border-bottom(data-user-id="{{ user['_id'] }}",
 					class="{% if is_self %}self{% endif %}")
 					td.py-3
-						img.rounded-circle.mx-2(
-							src="{{ user['email'] | gravatar(24) }}")
+						img.rounded-circle.mx-2(style="width: 24px; height: 24px",
+							src="{{ user['avatar_url'] }}")
 						span.access-users-name
 							| {{ user['full_name'] }}
 							| {% if current_user.objectid == user['_id'] %}

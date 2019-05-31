@@ -11,6 +11,7 @@ import pillarsdk
 from pillar.extension import PillarExtension
 from pillar.auth import current_user
 from pillar.api.projects import utils as proj_utils
+import pillar.api.users.avatar
 from pillar.api.utils import str2id
 from pillar.api.utils.authorization import require_login
 from pillar.web import utils as web_utils
@@ -159,10 +160,11 @@ class SVNManExtension(PillarExtension):
             svninfo = {str2id(uid): userinfo for uid, userinfo in userdict.items()}
             db_users = users_coll.find(
                 {'_id': {'$in': list(svninfo.keys())}},
-                projection={'full_name': 1, 'email': 1},
+                projection={'full_name': 1, 'email': 1, 'avatar': 1},
             )
             for db_user in db_users:
                 svninfo.setdefault(db_user['_id'], {})['db'] = db_user
+                db_user['avatar_url'] = pillar.api.users.avatar.url(db_user)
 
             svn_users = sorted(svninfo.values(), key=lambda item: item.get('username', ''))
 
